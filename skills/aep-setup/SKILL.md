@@ -48,6 +48,8 @@ For each missing module, warn: "Module `{code}` not found in config. AEP depends
 
 **BMM config fallback** — if the `bmm` section exists in `{project-root}/_bmad/config.yaml`, read its `planning_artifacts` and `implementation_artifacts` values. Use these as defaults for the AEP config questions instead of the module.yaml defaults. Inform the user: "BMM module detected — using its artifact paths as defaults."
 
+**Nextra docs site** — if the user provides a non-empty `docs_site_content_path`, check for `nextra` in the nearest `package.json` relative to that path. If not found, warn: "Nextra not found near '{{docs_site_content_path}}'. AEP's documentation step generates .mdx pages for Nextra (https://nextra.site). Install Nextra before running the pipeline, or set `docs_mode` to 'skip'."
+
 ## Collect Configuration
 
 Ask the user for values. Show defaults in brackets. Present all values together so the user can respond once with only the values they want to change (e.g. "change language to Swahili, rest are fine"). Never tell the user to "press enter" or "leave blank" — in a chat interface they must type something to respond.
@@ -70,6 +72,21 @@ python3 ./scripts/merge-help-csv.py --target "{project-root}/_bmad/module-help.c
 Both scripts output JSON to stdout with results. If either exits non-zero, surface the error and stop. The scripts automatically read legacy config values as fallback defaults, then delete the legacy files after a successful merge. Check `legacy_configs_deleted` and `legacy_csvs_deleted` in the output to confirm cleanup.
 
 Run `./scripts/merge-config.py --help` or `./scripts/merge-help-csv.py --help` for full usage.
+
+## Write Customize Overrides
+
+After writing config, check if any collected answers have `customize_toml: true` in `./assets/module.yaml` and differ from the skill's built-in `customize.toml` defaults. If so, write override files:
+
+For each unique target in `customize_targets`, create `{project-root}/_bmad/custom/<target>.toml` (or update it if it already exists). Write collected values under the `[workflow]` section. Only write keys whose values differ from the skill's default `customize.toml`.
+
+Example — if the user set `docs_site_content_path = "apps/docs-site/content"` and `docs_mode = "auto"` (which is the default), only `docs_site_content_path` would be written:
+
+```toml
+[workflow]
+docs_site_content_path = "apps/docs-site/content"
+```
+
+If all values match defaults, skip creating the override file.
 
 ## Create Output Directories
 

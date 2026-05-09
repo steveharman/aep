@@ -17,6 +17,7 @@ greeting: |
   Configure second-opinion reviews and docs integration via customize.toml overrides.
 
   Prerequisites: BMad Core, BMM, and TEA modules must be installed.
+  Docs site integration requires Nextra (https://nextra.site).
 
 dependencies:
   modules:
@@ -46,12 +47,39 @@ questions:
     default: "{project-root}/_bmad-output/implementation-artifacts"
     result_template: "{value}"
     user_setting: false
+  - key: docs_mode
+    prompt: "Enable the documentation step? ('auto' to generate docs each story, 'skip' to disable)"
+    default: "auto"
+    result_template: "{value}"
+    user_setting: false
+    customize_toml: true
+    customize_targets:
+      - "aep-implement-story"
+      - "aep-post-story-quality"
+  - key: docs_site_content_path
+    prompt: "Path to your docs site content directory (blank to skip docs-site page generation — requires Nextra)"
+    default: ""
+    result_template: "{value}"
+    user_setting: false
+    customize_toml: true
+    customize_targets:
+      - "aep-implement-story"
+      - "aep-post-story-quality"
+  - key: docs_generate_command
+    prompt: "Command to regenerate docs pages after writing (blank to skip)"
+    default: ""
+    result_template: "{value}"
+    user_setting: false
+    customize_toml: true
+    customize_targets:
+      - "aep-implement-story"
+      - "aep-post-story-quality"
 
 directories:
   - "{implementation_artifacts}/quality-reports"
   - "{implementation_artifacts}/stories"
 
 post-install-notes: |
-  To customize second-opinion reviews or docs integration,
-  create _bmad/custom/aep-implement-story.toml with [workflow] overrides.
-  See the skill's customize.toml for available settings.
+  To further customize second-opinion reviews or docs integration,
+  edit _bmad/custom/aep-implement-story.toml with [workflow] overrides.
+  See the skill's customize.toml for all available settings.
