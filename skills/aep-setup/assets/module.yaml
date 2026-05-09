@@ -1,0 +1,57 @@
+name: Autonomous Epic Pipeline
+code: aep
+description: "Autonomous implementation pipeline: takes epics from backlog to done via story creation, multi-reviewer quality gates, optional second-opinion reviews, documentation, CI verification, and sprint tracking."
+version: 1.0.0
+type: expansion
+parent_module: bmm
+
+greeting: |
+  Autonomous Epic Pipeline (AEP) is installed.
+
+  Commands:
+    /aep-implement-epic <epic-ids>      — Run full pipeline for one or more epics
+    /aep-implement-story [story-id]     — Run 12-step story pipeline
+    /aep-post-story-quality [story-id]  — Run quality gate on a manually-implemented story
+
+  AEP discovers project context from CLAUDE.md and architecture.md at runtime.
+  Configure second-opinion reviews and docs integration via customize.toml overrides.
+
+  Prerequisites: BMad Core, BMM, and TEA modules must be installed.
+
+dependencies:
+  modules:
+    - code: core
+      reason: "Review task templates (adversarial, edge-case)"
+    - code: bmm
+      reason: "Stock skills (create-story, dev-story, code-review, tech-writer, agent-dev)"
+    - code: tea
+      reason: "Test review and traceability workflows"
+
+skills:
+  - name: aep-implement-epic
+    path: aep-implement-epic
+  - name: aep-implement-story
+    path: aep-implement-story
+  - name: aep-post-story-quality
+    path: aep-post-story-quality
+
+questions:
+  - key: planning_artifacts
+    prompt: "Where are your planning documents (architecture.md, epics.md, etc.)?"
+    default: "{project-root}/_bmad-output/planning-artifacts"
+    result_template: "{value}"
+    user_setting: false
+  - key: implementation_artifacts
+    prompt: "Where are your implementation documents (sprint-status.yaml, stories/, etc.)?"
+    default: "{project-root}/_bmad-output/implementation-artifacts"
+    result_template: "{value}"
+    user_setting: false
+
+directories:
+  - "{implementation_artifacts}/quality-reports"
+  - "{implementation_artifacts}/stories"
+
+post-install-notes: |
+  To customize second-opinion reviews or docs integration,
+  create _bmad/custom/aep-implement-story.toml with [workflow] overrides.
+  See the skill's customize.toml for available settings.

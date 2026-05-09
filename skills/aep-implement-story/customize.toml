@@ -1,0 +1,31 @@
+# AEP Implement Story — Customization Surface
+# Override via: _bmad/custom/aep-implement-story.toml (team) or .user.toml (personal)
+
+[workflow]
+# Maximum fix loop iterations per step (Steps 3, 5, 5c, 6b, 9)
+max_fix_loops = 3
+
+# Second-opinion review configuration
+# Provider: "deepseek", "none" (skip second opinion entirely)
+second_opinion_provider = "deepseek"
+# Model to use for second-opinion review
+second_opinion_model = "deepseek-v4-pro"
+# If true, pipeline halts when second opinion is unavailable; if false, logs warning and skips
+second_opinion_required = true
+# Env var or .env.keys key containing the API key for the second-opinion provider
+second_opinion_api_key_source = "deepseek-api-key"
+
+# Documentation step
+# Set to "skip" to skip docs generation entirely, "auto" to run normally
+docs_mode = "auto"
+# Path within docs site for internal epic pages (blank = skip docs-site pages)
+docs_site_content_path = ""
+# Command to regenerate story pages (blank = skip)
+docs_generate_command = ""
+
+# Steps run before the pipeline starts (after config load)
+activation_steps_prepend = []
+# Steps run after pipeline completes
+activation_steps_append = []
+# Facts loaded on activation (literal or file: prefixed paths)
+persistent_facts = []

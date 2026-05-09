@@ -1,0 +1,18 @@
+# AEP Post-Story Quality Gate — Customization Surface
+# Override via: _bmad/custom/aep-post-story-quality.toml (team) or .user.toml (personal)
+
+[workflow]
+# Maximum loop-back iterations per step
+max_loopbacks_per_step = 2
+
+# Documentation step
+docs_mode = "auto"
+docs_site_content_path = ""
+docs_generate_command = ""
+
+# Steps run before the quality gate starts
+activation_steps_prepend = []
+# Steps run after quality gate completes
+activation_steps_append = []
+# Facts loaded on activation
+persistent_facts = []
