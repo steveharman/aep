@@ -12,6 +12,42 @@
 
 ---
 
+## Pre-Flight: Verify Dependencies
+
+<action>**Check required files.** Verify each exists. Collect any missing into `{{missing_deps}}`:
+
+| File | Required by |
+|------|------------|
+| `{project-root}/.claude/skills/bmad-create-story/SKILL.md` | Story pipeline Step 1 |
+| `{project-root}/.claude/skills/bmad-dev-story/SKILL.md` | Story pipeline Step 2 |
+| `{project-root}/_bmad/core/tasks/review-adversarial-general.xml` | Story pipeline Step 4a |
+| `{project-root}/_bmad/core/tasks/review-edge-case-hunter.xml` | Story pipeline Step 4b |
+| `{project-root}/.claude/skills/bmad-testarch-test-review/SKILL.md` | Story pipeline Step 4c |
+| `{project-root}/.claude/skills/bmad-agent-tech-writer/SKILL.md` | Story pipeline Step 7 |
+| `{project-root}/CLAUDE.md` | All steps (project context) |
+| `{{sprint_status_file}}` | Epic/story discovery |
+</action>
+
+<check if="missing_deps is not empty">
+  <action>**HALT:**
+
+  ```
+  **AEP Pre-Flight Failed — Missing Dependencies**
+
+  The following required files were not found:
+  {{for each missing: - {{file}} (needed for {{required_by}})}}
+
+  To fix:
+  1. Install the BMad framework: https://github.com/bmad-artifacts/bmad-agent
+     Ensure Core, BMM, and TEA modules are installed.
+  2. Create a CLAUDE.md at project root with your project rules and toolchain.
+  3. Run /aep-setup to configure AEP.
+  ```
+  </action>
+</check>
+
+---
+
 ## Resolved Paths
 
 - `{{sprint_status_file}}` — resolved from config during On Activation

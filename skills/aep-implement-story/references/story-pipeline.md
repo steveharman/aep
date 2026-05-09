@@ -6,11 +6,58 @@
 
 ---
 
-## Step 0: Story Identification & Context
+## Step 0: Pre-Flight Checks & Story Identification
 
-**Goal:** Identify the target story and resolve paths.
+**Goal:** Verify prerequisites, identify the target story, and resolve paths.
 
-## Resolved Paths (from config — set during On Activation)
+### Pre-Flight: Verify Dependencies
+
+<action>**Check required BMad files.** Verify each of these exists. Collect any missing into `{{missing_deps}}`:
+
+| File | Required by |
+|------|------------|
+| `{project-root}/.claude/skills/bmad-create-story/SKILL.md` | Step 1 (story creation) |
+| `{project-root}/.claude/skills/bmad-dev-story/SKILL.md` | Step 2 (implementation) |
+| `{project-root}/_bmad/core/tasks/review-adversarial-general.xml` | Step 4a (adversarial review) |
+| `{project-root}/_bmad/core/tasks/review-edge-case-hunter.xml` | Step 4b (edge-case review) |
+| `{project-root}/.claude/skills/bmad-testarch-test-review/SKILL.md` | Step 4c (test quality review) |
+| `{project-root}/.claude/skills/bmad-agent-tech-writer/SKILL.md` | Step 7 (documentation) |
+| `{project-root}/CLAUDE.md` | All steps (project context) |
+</action>
+
+<check if="missing_deps is not empty">
+  <action>**HALT:** Present a clear error:
+
+  ```
+  **AEP Pre-Flight Failed — Missing Dependencies**
+
+  The following required files were not found:
+  {{for each missing: - {{file}} (needed for {{required_by}})}}
+
+  To fix:
+  1. Install the BMad framework: https://github.com/bmad-artifacts/bmad-agent
+     Ensure Core, BMM, and TEA modules are installed.
+  2. Create a CLAUDE.md at project root with your project rules and toolchain.
+  3. Run /aep-setup to configure AEP.
+  ```
+  </action>
+</check>
+
+<action>**Check second-opinion API key** (non-blocking).
+
+Read `second_opinion_provider` from customize.toml (default: "deepseek").
+Read `second_opinion_required` (default: true).
+Read `second_opinion_model` (default: "deepseek-v4-pro").
+Read `second_opinion_api_key_source` (default: "deepseek-api-key").
+
+If provider is "none" -> set `{{second_opinion_available}} = false`. Log: "Second-opinion review disabled by config."
+If provider is set, load the API key from `.env.keys` using the configured key source.
+If key is empty and required is true -> **HALT:** "No API key found for second-opinion provider '{{second_opinion_provider}}' (looked for '{{second_opinion_api_key_source}}' in .env.keys). Either add the key or set `second_opinion_required = false` in customize.toml."
+If key is empty and required is false -> set `{{second_opinion_available}} = false`. Log: "Warning: no API key for second-opinion provider — Step 5b will be skipped."
+If key is present -> set `{{second_opinion_api_key}}` and `{{second_opinion_available}} = true`.
+</action>
+
+### Resolve Paths (from config — set during On Activation)
 
 - `{{sprint_status_file}}` — sprint status YAML
 - `{{story_location}}` — story spec files directory
@@ -22,7 +69,7 @@
 
 Refer to "the relevant app/package" throughout — never hardcode a single root.
 
-**Story identification:**
+### Story Identification
 
 <check if="story_id is already set (provided by user or caller)">
   **Fast path.**
@@ -38,20 +85,6 @@ Refer to "the relevant app/package" throughout — never hardcode a single root.
   <action>Extract story_id, epic_num, story_key, story_name.</action>
   <action>Verify parent epic (epic-{{epic_num}}) is "in-progress". If not -> **HALT:** "Story {{story_id}} belongs to epic-{{epic_num}} which is not yet in-progress."</action>
 </check>
-
-<action>**Load second-opinion config.**
-
-Read `second_opinion_provider` from customize.toml (default: "deepseek").
-Read `second_opinion_required` (default: true).
-Read `second_opinion_model` (default: "deepseek-v4-pro").
-Read `second_opinion_api_key_source` (default: "deepseek-api-key").
-
-If provider is "none" -> set `{{second_opinion_available}} = false`, skip Step 5b entirely.
-If provider is set, load the API key from `.env.keys` using the configured key source.
-If key is empty and required is true -> set `{{second_opinion_available}} = false` and log warning.
-If key is empty and required is false -> set `{{second_opinion_available}} = false` and log: "Warning: no API key for second-opinion provider — Step 5b will be skipped."
-If key is present -> set `{{second_opinion_api_key}}` and `{{second_opinion_available}} = true`.
-</action>
 
 <action>Log: "**Starting pipeline for Story {{story_id}}: {{story_name}}**"</action>
 <action>Enter YOLO mode for the remainder of this workflow.</action>

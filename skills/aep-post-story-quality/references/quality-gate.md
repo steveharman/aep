@@ -25,6 +25,39 @@ Sub-agent prompts inject this context block rather than hardcoding project detai
 
 ---
 
+## Pre-Flight: Verify Dependencies
+
+<action>**Check required files.** Verify each exists. Collect any missing into `{{missing_deps}}`:
+
+| File | Required by |
+|------|------------|
+| `{project-root}/_bmad/core/tasks/workflow.xml` | Steps 1, 2, 4a, 4b (workflow engine) |
+| `{project-root}/_bmad/core/tasks/review-edge-case-hunter.xml` | Step 1b (edge-case analysis) |
+| `{project-root}/.claude/skills/bmad-testarch-test-review/SKILL.md` | Step 4a (test review) |
+| `{project-root}/CLAUDE.md` | All steps (project context) |
+| `{{sprint_status_file}}` | Story discovery and status |
+</action>
+
+<check if="missing_deps is not empty">
+  <action>**HALT:**
+
+  ```
+  **AEP Pre-Flight Failed — Missing Dependencies**
+
+  The following required files were not found:
+  {{for each missing: - {{file}} (needed for {{required_by}})}}
+
+  To fix:
+  1. Install the BMad framework: https://github.com/bmad-artifacts/bmad-agent
+     Ensure Core, BMM, and TEA modules are installed.
+  2. Create a CLAUDE.md at project root with your project rules and toolchain.
+  3. Run /aep-setup to configure AEP.
+  ```
+  </action>
+</check>
+
+---
+
 ## Step 0: Identify Story
 
 <check if="story_id is already set (non-empty)">
