@@ -64,6 +64,7 @@ Additional requirements:
 - **Sprint status YAML** with story entries
 - **GitHub CLI (`gh`)** for CI verification
 - **Deepseek API key** (optional) for second-opinion reviews -- configurable via `customize.toml`
+- **[Nextra](https://nextra.site)** docs site (optional) -- required if `docs_site_content_path` is configured. Set `docs_mode = "skip"` in `customize.toml` to disable documentation entirely
 
 ## How it works
 

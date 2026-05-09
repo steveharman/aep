@@ -57,6 +57,14 @@ If key is empty and required is false -> set `{{second_opinion_available}} = fal
 If key is present -> set `{{second_opinion_api_key}}` and `{{second_opinion_available}} = true`.
 </action>
 
+<action>**Check docs-site prerequisites** (only when `docs_mode` from customize.toml is not `"skip"` AND `docs_site_content_path` is configured and non-empty).
+
+1. Verify `{project-root}/{{docs_site_content_path}}/` exists on disk. If missing -> **HALT:** "Docs site content path '{{docs_site_content_path}}' does not exist. Either create the directory, update `docs_site_content_path` in customize.toml, or set `docs_mode = \"skip\"` to disable documentation."
+2. Check for Nextra installation: look for `nextra` in the nearest `package.json` to `{{docs_site_content_path}}` (e.g. `apps/docs-site/package.json`). If not found -> **HALT:** "AEP's documentation step requires Nextra (https://nextra.site). No `nextra` dependency found near '{{docs_site_content_path}}'. Either install Nextra or set `docs_mode = \"skip\"` in customize.toml."
+
+If `docs_site_content_path` is blank or `docs_mode` is `"skip"`, skip this check entirely.
+</action>
+
 ### Resolve Paths (from config — set during On Activation)
 
 - `{{sprint_status_file}}` — sprint status YAML
