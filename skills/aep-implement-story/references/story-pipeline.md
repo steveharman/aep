@@ -619,7 +619,7 @@ Before launching the second-opinion review, the orchestrator builds two lists fr
 ```bash
 ANTHROPIC_BASE_URL="https://api.deepseek.com/anthropic" \
 ANTHROPIC_API_KEY="${second_opinion_api_key}" \
-claude --model "{{second_opinion_model}}" \
+claude --bare --model "{{second_opinion_model}}" \
   -p "[prompt below]" \
   --output-format json \
   --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*)" \
