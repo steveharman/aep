@@ -94,7 +94,9 @@ If all values match defaults, skip creating the override file.
 
 ## Create Output Directories
 
-After writing config, create any output directories that were configured. For filesystem operations only (such as creating directories), resolve the `{project-root}` token to the actual project root and create each path-type value from `config.yaml` that does not yet exist — this includes `output_folder` and any module variable whose value starts with `{project-root}/`. The paths stored in the config files must continue to use the literal `{project-root}` token; only the directories on disk should use the resolved paths. Use `mkdir -p` or equivalent to create the full path.
+After writing config, create any output directories that were configured. For filesystem operations only (such as creating directories), resolve the `{project-root}` token to the actual project root for each path-type value from `config.yaml` — this includes `output_folder` and any module variable whose value starts with `{project-root}/`. The paths stored in the config files must continue to use the literal `{project-root}` token; only the directories on disk should use the resolved paths.
+
+For each directory, check whether it already exists before creating it. Track two lists: **created** (directories that did not exist and were created via `mkdir -p`) and **already existed** (directories that were already present). Both lists are used in the confirmation step.
 
 ## Cleanup Legacy Directories
 
@@ -110,7 +112,7 @@ Check `directories_removed` and `files_removed_count` in the JSON output for the
 
 ## Confirm
 
-Use the script JSON output to display what was written — config values set (written to `config.yaml` at root for core, module section for module values), user settings written to `config.user.yaml` (`user_keys` in result), help entries added, fresh install vs update. If legacy files were deleted, mention the migration. If legacy directories were removed, report the count and list (e.g. "Cleaned up 106 installer package files from bmb/, core/, \_config/ — skills are installed at .claude/skills/"). Then display the `module_greeting` from `./assets/module.yaml` to the user.
+Use the script JSON output to display what was written — config values set (written to `config.yaml` at root for core, module section for module values), user settings written to `config.user.yaml` (`user_keys` in result), help entries added, fresh install vs update. If legacy files were deleted, mention the migration. If legacy directories were removed, report the count and list (e.g. "Cleaned up 106 installer package files from bmb/, core/, \_config/ — skills are installed at .claude/skills/"). For directories: only list directories that were newly created under "Directories created". If all directories already existed, say "Output directories already in place — no new directories created." Do not list pre-existing directories as created. Then display the `module_greeting` from `./assets/module.yaml` to the user.
 
 ## Outcome
 
