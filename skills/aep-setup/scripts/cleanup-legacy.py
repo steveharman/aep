@@ -204,7 +204,7 @@ def main():
     module_code = args.module_code
 
     # Build the list of directories to remove
-    dirs_to_remove = [module_code, "core"] + args.also_remove
+    dirs_to_remove = [module_code] + args.also_remove
     # Deduplicate while preserving order
     seen = set()
     unique_dirs = []
