@@ -47,6 +47,14 @@ questions:
     default: "{project-root}/_bmad-output/implementation-artifacts"
     result_template: "{value}"
     user_setting: false
+  - key: second_opinion_provider
+    prompt: "Enable second-opinion code reviews via an external LLM? ('deepseek' for Deepseek, 'none' to disable)"
+    default: "deepseek"
+    result_template: "{value}"
+    user_setting: false
+    customize_toml: true
+    customize_targets:
+      - "aep-implement-story"
   - key: docs_mode
     prompt: "Enable the documentation step? ('auto' to generate docs each story, 'skip' to disable)"
     default: "auto"

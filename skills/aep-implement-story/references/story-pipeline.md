@@ -50,7 +50,7 @@ Read `second_opinion_required` (default: true).
 Read `second_opinion_model` (default: "deepseek-v4-pro").
 Read `second_opinion_api_key_source` (default: "deepseek-api-key").
 
-If provider is "none" -> set `{{second_opinion_available}} = false`. Log: "Second-opinion review disabled by config."
+If provider is "none" -> set `{{second_opinion_available}} = false` and `{{second_opinion_required}} = false`. Log: "Second-opinion review disabled by config."
 If provider is set, load the API key from `.env.keys` using the configured key source.
 If key is empty and required is true -> **HALT:** "No API key found for second-opinion provider '{{second_opinion_provider}}' (looked for '{{second_opinion_api_key_source}}' in .env.keys). Either add the key or set `second_opinion_required = false` in customize.toml."
 If key is empty and required is false -> set `{{second_opinion_available}} = false`. Log: "Warning: no API key for second-opinion provider — Step 5b will be skipped."

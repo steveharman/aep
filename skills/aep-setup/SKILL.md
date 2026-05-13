@@ -48,6 +48,8 @@ For each missing module, warn: "Module `{code}` not found in config. AEP depends
 
 **BMM config fallback** — if the `bmm` section exists in `{project-root}/_bmad/config.yaml`, read its `planning_artifacts` and `implementation_artifacts` values. Use these as defaults for the AEP config questions instead of the module.yaml defaults. Inform the user: "BMM module detected — using its artifact paths as defaults."
 
+**Second-opinion API key** — if `second_opinion_provider` is not `"none"`, check for the API key. Look for the key named `deepseek-api-key` (or the value of `second_opinion_api_key_source` if customized) in `{project-root}/.env.keys`. If not found, warn: "No API key found for second-opinion provider '{{second_opinion_provider}}'. The pipeline will halt at Step 5b unless the key is added to `.env.keys` as `deepseek-api-key`, or second-opinion reviews are disabled by setting `second_opinion_provider` to 'none'."
+
 **Nextra docs site** — if the user provides a non-empty `docs_site_content_path`, check for `nextra` in the nearest `package.json` relative to that path. If not found, warn: "Nextra not found near '{{docs_site_content_path}}'. AEP's documentation step generates .mdx pages for Nextra (https://nextra.site). Install Nextra before running the pipeline, or set `docs_mode` to 'skip'."
 
 ## Collect Configuration
@@ -85,6 +87,8 @@ Example — if the user set `docs_site_content_path = "apps/docs-site/content"` 
 [workflow]
 docs_site_content_path = "apps/docs-site/content"
 ```
+
+**Provider/required coupling:** if `second_opinion_provider` is `"none"`, always write `second_opinion_required = false` alongside it in the same override file, regardless of what the user said or the default. This prevents a contradictory state where the provider is disabled but the pipeline treats it as mandatory and halts.
 
 If all values match defaults, skip creating the override file.
 
