@@ -19,13 +19,13 @@ AEP discovers project context from your `CLAUDE.md` and architecture docs at run
 
 ```bash
 # Install all skills to Claude Code
-npx skills add streeyt/aep --agent claude-code
+npx skills add steveharman/aep --agent claude-code
 
 # Install all skills to all supported agents
-npx skills add streeyt/aep --all
+npx skills add steveharman/aep --all
 
 # List available skills first
-npx skills add streeyt/aep --list
+npx skills add steveharman/aep --list
 ```
 
 ### Manual installation
@@ -33,7 +33,7 @@ npx skills add streeyt/aep --list
 Copy the skill folders from `skills/` into your project's `.claude/skills/` directory:
 
 ```bash
-git clone git@github.com:streeyt/aep.git /tmp/aep
+git clone git@github.com:steveharman/aep.git /tmp/aep
 cp -r /tmp/aep/skills/aep-* .claude/skills/
 ```
 
