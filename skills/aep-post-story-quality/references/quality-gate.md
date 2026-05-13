@@ -31,9 +31,12 @@ Sub-agent prompts inject this context block rather than hardcoding project detai
 
 | File | Required by |
 |------|------------|
-| `{project-root}/_bmad/core/tasks/workflow.xml` | Steps 1, 2, 4a, 4b (workflow engine) |
+| `{project-root}/_bmad/core/tasks/review-adversarial-general.xml` | Step 1 (code review) |
 | `{project-root}/_bmad/core/tasks/review-edge-case-hunter.xml` | Step 1b (edge-case analysis) |
+| `{project-root}/_bmad/core/tasks/workflow.xml` | Steps 4a, 4b (workflow engine) |
+| `{project-root}/.claude/skills/bmad-qa-generate-e2e-tests/SKILL.md` | Step 2 (QA automation) |
 | `{project-root}/.claude/skills/bmad-testarch-test-review/SKILL.md` | Step 4a (test review) |
+| `{project-root}/.claude/skills/bmad-testarch-trace/SKILL.md` | Step 4b (traceability) |
 | `{project-root}/CLAUDE.md` | All steps (project context) |
 | `{{sprint_status_file}}` | Story discovery and status |
 </action>
@@ -120,11 +123,8 @@ Store as `{{story_scope}}` (may be a comma-separated list when the story spans m
 You are running an autonomous code review as part of a quality gate.
 
 CRITICAL INSTRUCTIONS:
-1. Read the FULL workflow engine file at: {project-root}/_bmad/core/tasks/workflow.xml
-2. Read its entire contents — this is the CORE OS for executing workflows.
-3. Execute the workflow at: {project-root}/_bmad/bmm/workflows/4-implementation/code-review/workflow.yaml
-4. Pass the yaml path as 'workflow-config' parameter to the workflow.xml instructions.
-5. Follow workflow.xml instructions EXACTLY.
+1. Read the adversarial review task: {project-root}/_bmad/core/tasks/review-adversarial-general.xml
+2. Follow its instructions exactly.
 
 CONTEXT:
 - Story ID: {{story_id}}
@@ -140,17 +140,29 @@ Read {project-root}/CLAUDE.md for all project rules, toolchain, naming conventio
 Read {{planning_artifacts}}/architecture.md for architecture decisions and constraints.
 Treat rules from these documents as binding constraints.
 
-PROJECT-SPECIFIC CHECKS:
-Read {project-root}/CLAUDE.md for project-specific review rules. Apply all mandatory rules
-found there. Common categories include: design system discipline, i18n requirements,
-accessibility standards, CSS conventions, security posture — but defer to whatever CLAUDE.md
-actually specifies for this project.
+ALSO CONSIDER (passed to task's also_consider input):
+Focus areas beyond general adversarial analysis:
+- Architecture compliance (tokens, patterns from ref docs)
+- Security: auth checks, multi-tenancy scoping, input validation
+- Performance: unbounded queries, N+1 patterns
+- Error handling: raw errors in UI, missing fallbacks
+- Project-specific mandatory rules from CLAUDE.md (design system discipline,
+  i18n requirements, accessibility standards, CSS conventions, security posture —
+  defer to whatever CLAUDE.md actually specifies for this project)
 
-AUTONOMOUS BEHAVIOR:
-- Run in YOLO mode — skip all confirmations and user prompts.
-- When asked about choices (fix mode, etc.), always choose option 1 (auto-fix all).
-- Auto-fix ALL issues found — do not ask for user input.
-- After the review completes, provide a structured summary.
+SEVERITY CLASSIFICATION:
+- HIGH: Broken functionality, security hole, data loss
+- MEDIUM: Architecture violations, accessibility gaps, missing validation, violations of mandatory rules from CLAUDE.md
+- LOW: Style, refactoring, nice-to-haves
+
+MANDATORY RULE ENFORCEMENT:
+Read {project-root}/CLAUDE.md for project-specific mandatory rules. Any finding that violates
+a mandatory rule from CLAUDE.md MUST be classified as MEDIUM or higher, regardless of how
+minor it appears.
+
+AUTONOMOUS: YOLO mode. Fix HIGH issues directly (they are urgent). Report MEDIUM+LOW
+findings in your output — do NOT fix them here. The dedicated loop-back fix agent
+will fix all MEDIUM findings in a single coordinated pass.
 
 REQUIRED OUTPUT FORMAT (return EXACTLY this structure):
 ---RESULTS---
@@ -397,11 +409,9 @@ IMPORTANT: Every guard MUST have a corresponding test. Do not implement a guard 
 You are running autonomous QA test generation as part of a quality gate.
 
 CRITICAL INSTRUCTIONS:
-1. Read the FULL workflow engine file at: {project-root}/_bmad/core/tasks/workflow.xml
-2. Read its entire contents — this is the CORE OS for executing workflows.
-3. Execute the workflow at: {project-root}/_bmad/bmm/workflows/qa/automate/workflow.yaml
-4. Pass the yaml path as 'workflow-config' parameter to the workflow.xml instructions.
-5. Follow workflow.xml instructions EXACTLY.
+1. Read the QA test generation skill: {project-root}/.claude/skills/bmad-qa-generate-e2e-tests/SKILL.md
+2. Follow its Execution section (Steps 0-5). Skip interactive On Activation steps (greeting, user prompts) — operate autonomously.
+3. For Step 1 (Identify Features), auto-discover from the story file's acceptance criteria and file list instead of asking the user.
 
 CONTEXT:
 - Story ID: {{story_id}}
@@ -604,7 +614,7 @@ You are running an autonomous test quality review as part of a quality gate.
 CRITICAL INSTRUCTIONS:
 1. Read the FULL workflow engine file at: {project-root}/_bmad/core/tasks/workflow.xml
 2. Read its entire contents — this is the CORE OS for executing workflows.
-3. Execute the workflow at: {project-root}/_bmad/tea/workflows/testarch/test-review/workflow.yaml
+3. Execute the workflow at: {project-root}/.claude/skills/bmad-testarch-test-review/workflow.yaml
 4. Pass the yaml path as 'workflow-config' parameter to the workflow.xml instructions.
 5. Follow workflow.xml instructions EXACTLY.
 
@@ -689,7 +699,7 @@ You are running an autonomous traceability check as part of a quality gate.
 CRITICAL INSTRUCTIONS:
 1. Read the FULL workflow engine file at: {project-root}/_bmad/core/tasks/workflow.xml
 2. Read its entire contents — this is the CORE OS for executing workflows.
-3. Execute the workflow at: {project-root}/_bmad/tea/workflows/testarch/trace/workflow.yaml
+3. Execute the workflow at: {project-root}/.claude/skills/bmad-testarch-trace/workflow.yaml
 4. Pass the yaml path as 'workflow-config' parameter to the workflow.xml instructions.
 5. Follow workflow.xml instructions EXACTLY.
 
