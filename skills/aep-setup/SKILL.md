@@ -26,7 +26,7 @@ Both config scripts use an anti-zombie pattern — existing entries for this mod
    - If `{project-root}/_bmad/config.yaml` **already** has a section for this module: this is a **legacy migration**. Inform the user that legacy per-module config was found alongside existing config, and legacy values will be used as fallback defaults.
    - In both cases, per-module config files and directories will be cleaned up after setup.
 
-If the user provides arguments (e.g. `accept all defaults`, `--headless`, or inline values like `user name is BMad, I speak Swahili`), map any provided values to config keys, use defaults for the rest, and skip interactive prompting. Still display the full confirmation summary at the end.
+If the user provides arguments (e.g. `accept all defaults`, `--headless`, or inline values like `second opinion none, docs skip`), map any provided values to config keys, use defaults for the rest, and skip interactive prompting. Still display the full confirmation summary at the end.
 
 ## Check Prerequisites
 
@@ -54,13 +54,90 @@ For each missing module, warn: "Module `{code}` not found in config. AEP depends
 
 ## Collect Configuration
 
-Ask the user for values. Show defaults in brackets. Present all values together so the user can respond once with only the values they want to change (e.g. "change language to Swahili, rest are fine"). Never tell the user to "press enter" or "leave blank" — in a chat interface they must type something to respond.
+Use the `AskUserQuestion` tool to present configuration choices as structured, interactive screens. The flow consists of up to 2 screens depending on user choices.
+
+If the user provides arguments (e.g. `accept all defaults`, `--headless`, or inline values), skip interactive prompting — map provided values to config keys, use defaults for the rest.
 
 **Default priority** (highest wins): existing new config values > legacy config values > `./assets/module.yaml` defaults. When legacy configs exist, read them and use matching values as defaults instead of `module.yaml` defaults. Only keys that match the current schema are carried forward — changed or removed keys are ignored.
 
-**Core config** (only if no core keys exist yet): `user_name` (default: BMad), `communication_language` and `document_output_language` (default: English — ask as a single language question, both keys get the same answer), `output_folder` (default: `{project-root}/_bmad-output`). Of these, `user_name` and `communication_language` are written exclusively to `config.user.yaml`. The rest go to `config.yaml` at root and are shared across all modules.
+**Core config** — `user_name`, `communication_language`, `document_output_language`, and `output_folder` are set by BMad Core during its install. Do not ask the user for these values. If core keys are missing from config (e.g. BMad Core was not yet installed), write defaults silently: `user_name = "BMad"`, `communication_language = "English"`, `document_output_language = "English"`, `output_folder = "{project-root}/_bmad-output"`.
 
-**Module config**: Read each variable in `./assets/module.yaml` that has a `prompt` field. Ask using that prompt with its default value (or legacy value if available).
+### Screen 1 — Artifact paths and feature toggles
+
+Present these three questions in a **single** `AskUserQuestion` call:
+
+**Question 1 — Artifact paths** (header: `Artifacts`)
+> "Use standard BMad artifact paths for planning and implementation documents?"
+
+| Option | Description |
+|--------|-------------|
+| Standard BMad paths (Recommended) | `_bmad-output/planning-artifacts` and `_bmad-output/implementation-artifacts` — or BMM values if detected |
+| Customize paths | You'll be asked for specific directory paths next |
+
+If BMM config was detected in Prerequisites, show the BMM-resolved paths in the recommended option's description instead of the module.yaml defaults.
+
+**Question 2 — Second opinion** (header: `2nd opinion`)
+> "Enable second-opinion code reviews via an external LLM?"
+
+| Option | Description |
+|--------|-------------|
+| DeepSeek (Recommended) | Uses DeepSeek V4 Pro for independent code review at Step 5b |
+| None | Skip the second-opinion phase entirely |
+
+**Question 3 — Documentation** (header: `Docs mode`)
+> "Enable automatic documentation generation after each story?"
+
+| Option | Description |
+|--------|-------------|
+| Auto (Recommended) | Generate documentation after each story implementation |
+| Skip | Disable the documentation step entirely |
+
+#### Screen 1 follow-ups
+
+- **If "Customize paths"** was selected: ask for `planning_artifacts` and `implementation_artifacts` values in a conversational follow-up, showing the resolved defaults in brackets.
+- **If "None"** was selected for second opinion: set `second_opinion_provider = "none"`.
+
+### Screen 2 — Docs site configuration (conditional)
+
+**Skip this screen entirely** if `docs_mode` was set to `"skip"` — set both `docs_site_content_path` and `docs_generate_command` to `""`.
+
+Otherwise, present two questions in a **single** `AskUserQuestion` call:
+
+**Question 1 — Docs site path** (header: `Docs path`)
+> "Generate Nextra docs-site pages? Specify your content directory path."
+
+| Option | Description |
+|--------|-------------|
+| No site integration | Only create standalone docs — no Nextra page generation |
+| docs/content | Common Nextra content directory location |
+
+The user can type a custom path via the auto-included "Other" option.
+
+**Question 2 — Docs build command** (header: `Docs cmd`)
+> "Run a command to regenerate docs pages after writing?"
+
+| Option | Description |
+|--------|-------------|
+| No command | Pages are written directly — no build step needed |
+| npm run docs:build | Common docs build command |
+
+The user can type a custom command via "Other".
+
+### Mapping answers to config keys
+
+| Answer | Config key | Value |
+|--------|-----------|-------|
+| Standard BMad paths | `planning_artifacts` | resolved default |
+| Standard BMad paths | `implementation_artifacts` | resolved default |
+| Customize paths | both keys | user-provided values from follow-up |
+| DeepSeek | `second_opinion_provider` | `"deepseek"` |
+| None | `second_opinion_provider` | `"none"` |
+| Auto | `docs_mode` | `"auto"` |
+| Skip | `docs_mode` | `"skip"` |
+| No site integration | `docs_site_content_path` | `""` |
+| docs/content (or Other) | `docs_site_content_path` | selected or typed value |
+| No command | `docs_generate_command` | `""` |
+| npm run docs:build (or Other) | `docs_generate_command` | selected or typed value |
 
 ## Write Files
 
