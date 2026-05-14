@@ -152,13 +152,21 @@ Focus areas beyond general adversarial analysis:
 
 SEVERITY CLASSIFICATION:
 - HIGH: Broken functionality, security hole, data loss
-- MEDIUM: Architecture violations, accessibility gaps, missing validation, violations of mandatory rules from CLAUDE.md
-- LOW: Style, refactoring, nice-to-haves
+- MEDIUM (ALWAYS — never downgrade to LOW):
+  * Any violation of mandatory rules from CLAUDE.md, architecture doc, UX spec, or design tokens
+  * Any violation of established patterns from prior stories
+  * Missing input validation on user-facing parameters
+  * Security-sensitive code paths lacking test coverage
+  * "Deferred to future story" is NOT a severity downgrade
+  * API parameters accepted but silently ignored
+  * Duplicate data creation with no deduplication
+- LOW: Style, refactoring, nice-to-haves that do NOT violate any mandatory rule
 
 MANDATORY RULE ENFORCEMENT:
 Read {project-root}/CLAUDE.md for project-specific mandatory rules. Any finding that violates
 a mandatory rule from CLAUDE.md MUST be classified as MEDIUM or higher, regardless of how
-minor it appears.
+minor it appears. "Consistent with existing patterns" is NOT a severity downgrade if the
+pattern violates rules.
 
 AUTONOMOUS: YOLO mode. Fix HIGH issues directly (they are urgent). Report MEDIUM+LOW
 findings in your output — do NOT fix them here. The dedicated loop-back fix agent
@@ -557,7 +565,28 @@ INSTRUCTIONS:
 2. Read the implemented code to understand behavior (not style).
 3. For each acceptance criterion, mentally walk through the user experience.
 4. Produce at least 3 findings (can be LOW severity observations if quality is high).
-5. Classify each finding: HIGH (breaks user expectations), MEDIUM (degrades experience), LOW (minor gap).
+5. Classify each finding using these MANDATORY severity rules:
+
+   **ALWAYS HIGH:**
+   - Broken functionality (acceptance criterion fails)
+   - Security vulnerability or data loss risk
+
+   **ALWAYS MEDIUM (never downgrade to LOW):**
+   - Any violation of a mandatory rule from CLAUDE.md, architecture doc, UX spec, or design tokens
+   - Any violation of established patterns from prior stories
+   - Missing input validation on user-facing parameters
+   - Security-sensitive code paths lacking test coverage
+   - "Deferred to future story" is NOT a severity downgrade — the issue exists NOW
+   - API parameters accepted but silently ignored
+   - Duplicate data creation with no deduplication
+
+   **LOW:** Minor gaps that do not violate any mandatory rule or degrade user experience.
+
+6. **DOWNGRADE BIAS CHECK (mandatory):** If your review produces ZERO medium+ findings,
+   you MUST include a section titled '## Downgrade Bias Check' listing every finding you
+   considered for MEDIUM and explaining specifically why it does not match any mandatory
+   MEDIUM classification rule above. The quality gate has historically exhibited a pattern
+   of finding real issues then downgrading them all to LOW — this check guards against that.
 
 AUTONOMOUS BEHAVIOR:
 - Run in YOLO mode — skip all confirmations.
@@ -580,17 +609,17 @@ notes: [1-3 sentence overall assessment]
 <action>Parse the subagent's returned results.</action>
 <action>Add inline_fixes to total_inline_fixes.</action>
 
-<check if="high_count > 0 AND step_3_loops < max_loopbacks_per_step">
-  <action>Increment step_3_loops. Log: "Step 3 loop-back {{step_3_loops}}/{{max_loopbacks_per_step}} — spawning fix subagent for HIGH severity business/functional issues, then re-evaluating."</action>
-  <action>Spawn a `general-purpose` fix subagent with prompt: "Fix the following HIGH severity business/functional issues found during complementary review of Story {{story_id}}: {{findings_summary}}. Read the story file at {{story_location}}/story-{{story_id}}*.md for context. Fix all HIGH severity issues. Run tests using the project's test runner as specified in CLAUDE.md after fixing to confirm nothing is broken."</action>
+<check if="(high_count > 0 OR medium_count > 0) AND step_3_loops < max_loopbacks_per_step">
+  <action>Increment step_3_loops. Log: "Step 3 loop-back {{step_3_loops}}/{{max_loopbacks_per_step}} — spawning fix subagent for HIGH+MEDIUM severity business/functional issues, then re-evaluating."</action>
+  <action>Spawn a `general-purpose` fix subagent with prompt: "Fix the following HIGH and MEDIUM severity business/functional issues found during complementary review of Story {{story_id}}: {{findings_summary}}. Read the story file at {{story_location}}/story-{{story_id}}*.md for context. Fix all HIGH and MEDIUM severity issues — both must be resolved before the gate passes. Run tests using the project's test runner as specified in CLAUDE.md after fixing to confirm nothing is broken."</action>
   <goto step="Step 3"/>
 </check>
 
-<check if="high_count > 0 AND step_3_loops >= max_loopbacks_per_step">
+<check if="(high_count > 0 OR medium_count > 0) AND step_3_loops >= max_loopbacks_per_step">
   <action>Mark Step 3 as FAILED in the quality report.</action>
-  <template-output>Update Step 3 with FAILED status and remaining HIGH severity issues.</template-output>
-  <action>**HALT** — Complementary review failed after {{max_loopbacks_per_step}} loop-backs with {{high_count}} HIGH severity issues remaining. Save partial report and stop workflow.</action>
-  <action>Present HALT summary to user: "Quality gate HALTED at Step 3 (Complementary Review). {{high_count}} HIGH severity issues remain after {{step_3_loops}} loop-backs. Partial report saved."</action>
+  <template-output>Update Step 3 with FAILED status and remaining HIGH+MEDIUM severity issues.</template-output>
+  <action>**HALT** — Complementary review failed after {{max_loopbacks_per_step}} loop-backs with {{high_count}} HIGH and {{medium_count}} MEDIUM severity issues remaining. Save partial report and stop workflow.</action>
+  <action>Present HALT summary to user: "Quality gate HALTED at Step 3 (Complementary Review). {{high_count}} HIGH + {{medium_count}} MEDIUM severity issues remain after {{step_3_loops}} loop-backs. Partial report saved."</action>
 </check>
 
 <template-output>Update Step 3 in the quality report with the subagent's results.</template-output>
@@ -953,22 +982,30 @@ project-specific extraction/generation commands).</action>
 <action>Stage all modified and new files related to Story {{story_id}}. Use `git status` to identify changes, then `git add` specific files (avoid `git add -A`). This includes code, tests, docs, and the sprint status update.</action>
 <action>Commit with message: `feat: implement Story {{story_id}} {{story_name}}` (or `fix:` / `docs:` as appropriate based on the changes). Include `Co-Authored-By: Claude <noreply@anthropic.com>` in the commit.</action>
 <action>Push to the remote repository: `git push`.</action>
-<action>Poll CI status using `gh run list --branch main --limit 1 --json status,conclusion,databaseId` until the run completes (check every 30 seconds, max 10 minutes).</action>
-<action>Once CI completes, capture: commit hash, CI run ID, pass/fail status, and test counts from `gh run view`. CI runs the project's configured pipeline. Check for pass/fail conclusion.</action>
+<action>Determine the current branch: `git branch --show-current`. Use this branch name for CI queries — do NOT hardcode "main".</action>
+<action>Poll CI status using `gh run list --branch $(git branch --show-current) --limit 1 --json status,conclusion,databaseId` until the run completes (check every 30 seconds, max 10 minutes).</action>
+<action>Once CI completes, check the OVERALL workflow conclusion. ALL jobs must pass — not just the module-specific one. Use `gh run view [run_id] --json conclusion --jq '.conclusion'`. If conclusion is not "success", CI has FAILED. Use `gh run view [run_id] --json jobs --jq '.jobs[] | select(.conclusion=="failure") | .name'` to identify which jobs failed. A failing job in ANY module must be fixed — "not related to this story" is not a valid bypass. A green CI pipeline is a shared responsibility.</action>
 
 <check if="CI failed AND step_6_loops < max_loopbacks_per_step">
-  <action>Increment step_6_loops. Log: "Step 6 loop-back {{step_6_loops}}/{{max_loopbacks_per_step}} — reading CI failure logs and fixing."</action>
-  <action>Read CI failure logs: `gh run view [run_id] --log-failed`.</action>
-  <action>Analyze failures and fix the issues locally.</action>
-  <action>Run tests locally to verify the fix using the project's test runner as specified in CLAUDE.md.</action>
-  <goto step="Step 6"/>
+  <action>Increment step_6_loops. Log: "Step 6 loop-back {{step_6_loops}}/{{max_loopbacks_per_step}} — diagnosing CI failure root cause."</action>
+  <action>**Read CI failure logs:** `gh run view [run_id] --log-failed`. Extract the EXACT error message(s) and failing test name(s).</action>
+  <action>**Diagnose root cause — not symptoms.** Trace from the error message back to the code:
+  1. Identify which test file and test case failed.
+  2. Read the failing test and the production code it exercises.
+  3. Determine WHY it fails — schema mismatch, missing mock, wrong import, env var, etc.
+  4. "Pre-existing failure" and "not related to this story" are NOT valid reasons to skip the fix. If CI is red, it MUST be fixed regardless of which story introduced the regression. A green CI pipeline is a prerequisite for every story.
+  </action>
+  <action>**Fix the root cause.** Edit the source code or test code to resolve the failure.</action>
+  <action>**Verify locally if possible.** Run the relevant test suite using the project's test runner as specified in CLAUDE.md. If the failing tests require infrastructure not available locally (e.g., Docker/testcontainers), skip local verification but still commit the fix — CI will verify.</action>
+  <action>**Commit, push, and re-check CI.** Stage the fix, commit with message `fix: resolve CI failure in [test/module name]`, push, then re-enter the CI polling loop.</action>
+  <goto step="Step 6" note="Re-enters at the CI polling stage — sprint status and main commit already done."/>
 </check>
 
 <check if="CI failed AND step_6_loops >= max_loopbacks_per_step">
   <action>Mark Step 6 as FAILED in the quality report.</action>
-  <template-output>Update Step 6 with FAILED status and CI failure details.</template-output>
+  <template-output>Update Step 6 with FAILED status, CI failure details, and the exact error messages from each loopback attempt.</template-output>
   <action>**HALT** — CI verification failed after {{max_loopbacks_per_step}} loop-backs. Save partial report and stop workflow.</action>
-  <action>Present HALT summary to user: "Quality gate HALTED at Step 6 (CI Verification). CI pipeline still failing after {{step_6_loops}} loop-backs. Partial report saved."</action>
+  <action>Present HALT summary to user: "Quality gate HALTED at Step 6 (CI Verification). CI pipeline still failing after {{step_6_loops}} loop-backs. Root cause: [exact error from last attempt]. Partial report saved."</action>
 </check>
 
 <template-output>Update Step 6 in the quality report with commit hash, CI status, test results, sprint status fields.</template-output>
