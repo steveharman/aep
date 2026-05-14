@@ -7,12 +7,11 @@ max_fix_loops = 3
 
 # Second-opinion review configuration
 # Provider: "deepseek", "none" (skip second opinion entirely)
+# Second-opinion review configuration
+# Uses direct curl to DeepSeek API (not claude --bare, which fails in subprocess context)
 second_opinion_provider = "deepseek"
-# Model to use for second-opinion review
 second_opinion_model = "deepseek-v4-pro"
-# If true, pipeline halts when second opinion is unavailable; if false, logs warning and skips
 second_opinion_required = true
-# Env var or .env.keys key containing the API key for the second-opinion provider
 second_opinion_api_key_source = "deepseek-api-key"
 
 # Documentation step
