@@ -11,7 +11,7 @@ Use this when you've implemented a story manually and want to run the full quali
 
 ## On Activation
 
-1. Load config from `{project-root}/_bmad/config.yaml` (`aep` section) and `config.user.yaml`. If missing, fall back to the `bmm` section. If still missing, inform the user that `/aep-setup` can configure the module. Use sensible defaults for anything not configured:
+1. Load config from `{project-root}/_bmad/config.toml` (`[modules.aep]` section) and `config.user.toml`. If missing, fall back to the `[modules.bmm]` section. If still missing, inform the user that `/aep-setup` can configure the module. Use sensible defaults for anything not configured:
    - `planning_artifacts`: `{project-root}/_bmad-output/planning-artifacts`
    - `implementation_artifacts`: `{project-root}/_bmad-output/implementation-artifacts`
 

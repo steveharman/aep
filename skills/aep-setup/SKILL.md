@@ -9,9 +9,9 @@ description: Sets up Autonomous Epic Pipeline module in a project. Use when the 
 
 Installs and configures a BMad module into a project. Module identity (name, code, version) comes from `./assets/module.yaml`. Collects user preferences and writes them to three files:
 
-- **`{project-root}/_bmad/config.yaml`** — shared project config: core settings at root (e.g. `output_folder`, `document_output_language`) plus a section per module with metadata and module-specific values. User-only keys (`user_name`, `communication_language`) are **never** written here.
-- **`{project-root}/_bmad/config.user.yaml`** — personal settings intended to be gitignored: `user_name`, `communication_language`, and any module variable marked `user_setting: true` in `./assets/module.yaml`. These values live exclusively here.
-- **`{project-root}/_bmad/module-help.csv`** — registers module capabilities for the help system.
+- **`{project-root}/_bmad/config.toml`** — shared project config: `[core]` section for project-wide settings (e.g. `output_folder`, `document_output_language`) plus a `[modules.<code>]` section per module with metadata and module-specific values. User-only keys (`user_name`, `communication_language`) are **never** written here.
+- **`{project-root}/_bmad/config.user.toml`** — personal settings intended to be gitignored: `user_name`, `communication_language`, and any module variable marked `user_setting: true` in `./assets/module.yaml`. These values live exclusively here.
+- **`{project-root}/_bmad/_config/bmad-help.csv`** — registers module capabilities for the help system.
 
 Both config scripts use an anti-zombie pattern — existing entries for this module are removed before writing fresh ones, so stale values never persist.
 
@@ -20,11 +20,11 @@ Both config scripts use an anti-zombie pattern — existing entries for this mod
 ## On Activation
 
 1. Read `./assets/module.yaml` for module metadata and variable definitions (the `code` field is the module identifier)
-2. Check if `{project-root}/_bmad/config.yaml` exists — if a section matching the module's code is already present, inform the user this is an update
-3. Check for per-module configuration at `{project-root}/_bmad/aep/config.yaml` and `{project-root}/_bmad/core/config.yaml`. If either file exists:
-   - If `{project-root}/_bmad/config.yaml` does **not** yet have a section for this module: this is a **fresh install**. Inform the user that installer config was detected and values will be consolidated into the new format.
-   - If `{project-root}/_bmad/config.yaml` **already** has a section for this module: this is a **legacy migration**. Inform the user that legacy per-module config was found alongside existing config, and legacy values will be used as fallback defaults.
-   - In both cases, per-module config files and directories will be cleaned up after setup.
+2. Check if `{project-root}/_bmad/config.toml` exists — if it contains a `[modules.<code>]` section for this module, inform the user this is an update
+3. Check for legacy per-module configuration at `{project-root}/_bmad/aep/config.yaml` and `{project-root}/_bmad/core/config.yaml` (older bmad format). If either file exists:
+   - If `{project-root}/_bmad/config.toml` does **not** yet have a `[modules.aep]` section: this is a **fresh install**. Inform the user that legacy installer config was detected and values will be consolidated into the new TOML format.
+   - If `{project-root}/_bmad/config.toml` **already** has a `[modules.aep]` section: this is a **legacy migration**. Inform the user that legacy per-module config was found alongside existing config, and legacy values will be used as fallback defaults.
+   - In both cases, legacy per-module config files and directories will be cleaned up after setup.
 
 If the user provides arguments (e.g. `accept all defaults`, `--headless`, or inline values like `second opinion none, docs skip`), map any provided values to config keys, use defaults for the rest, and skip interactive prompting. Still display the full confirmation summary at the end.
 
@@ -32,7 +32,7 @@ If the user provides arguments (e.g. `accept all defaults`, `--headless`, or inl
 
 Before collecting configuration, verify that required modules and tools are available. These checks are warnings, not blockers — the user may plan to install missing dependencies later.
 
-**Required BMad modules** — check `{project-root}/_bmad/config.yaml` for sections matching each module code:
+**Required BMad modules** — check `{project-root}/_bmad/config.toml` for `[modules.<code>]` sections matching each module code:
 
 | Module | Code | Reason |
 |--------|------|--------|
@@ -46,7 +46,7 @@ For each missing module, warn: "Module `{code}` not found in config. AEP depends
 
 **Required project files** — check for `{project-root}/CLAUDE.md`. If not found, warn: "No CLAUDE.md found at project root. AEP reads project rules from this file at runtime. Create one with your project's toolchain, conventions, and coding standards."
 
-**BMM config fallback** — if the `bmm` section exists in `{project-root}/_bmad/config.yaml`, read its `planning_artifacts` and `implementation_artifacts` values. Use these as defaults for the AEP config questions instead of the module.yaml defaults. Inform the user: "BMM module detected — using its artifact paths as defaults."
+**BMM config fallback** — if the `bmm` module section exists in `{project-root}/_bmad/config.toml` (as `[modules.bmm]`), read its `planning_artifacts` and `implementation_artifacts` values. Use these as defaults for the AEP config questions instead of the module.yaml defaults. Inform the user: "BMM module detected — using its artifact paths as defaults."
 
 **Second-opinion API key** — if `second_opinion_provider` is not `"none"` (check existing config or the default `"deepseek"`), look for the key named `deepseek-api-key` (or the value of `second_opinion_api_key_source` if customized) in `{project-root}/.env.keys`. If not found, warn: "No Deepseek API key found in `.env.keys`. Second-opinion reviews are enabled by default and require this key — the pipeline will halt at Step 5b without it. You can add `deepseek-api-key=<your-key>` to `.env.keys` now, or choose 'none' for the second-opinion question below to disable this feature."
 
@@ -144,8 +144,8 @@ The user can type a custom command via "Other".
 Write a temp JSON file with the collected answers structured as `{"core": {...}, "module": {...}}` (omit `core` if it already exists). Then run both scripts — they can run in parallel since they write to different files:
 
 ```bash
-python3 ./scripts/merge-config.py --config-path "{project-root}/_bmad/config.yaml" --user-config-path "{project-root}/_bmad/config.user.yaml" --module-yaml ./assets/module.yaml --answers {temp-file} --legacy-dir "{project-root}/_bmad"
-python3 ./scripts/merge-help-csv.py --target "{project-root}/_bmad/module-help.csv" --source ./assets/module-help.csv --legacy-dir "{project-root}/_bmad" --module-code aep
+python3 ./scripts/merge-config.py --config-path "{project-root}/_bmad/config.toml" --user-config-path "{project-root}/_bmad/config.user.toml" --module-yaml ./assets/module.yaml --answers {temp-file} --legacy-dir "{project-root}/_bmad"
+python3 ./scripts/merge-help-csv.py --target "{project-root}/_bmad/_config/bmad-help.csv" --source ./assets/module-help.csv --legacy-dir "{project-root}/_bmad" --module-code aep
 ```
 
 Both scripts output JSON to stdout with results. If either exits non-zero, surface the error and stop. The scripts automatically read legacy config values as fallback defaults, then delete the legacy files after a successful merge. Check `legacy_configs_deleted` and `legacy_csvs_deleted` in the output to confirm cleanup.
@@ -171,7 +171,7 @@ If all values match defaults, skip creating the override file.
 
 ## Create Output Directories
 
-After writing config, create any output directories that were configured. For filesystem operations only (such as creating directories), resolve the `{project-root}` token to the actual project root for each path-type value from `config.yaml` — this includes `output_folder` and any module variable whose value starts with `{project-root}/`. The paths stored in the config files must continue to use the literal `{project-root}` token; only the directories on disk should use the resolved paths.
+After writing config, create any output directories that were configured. For filesystem operations only (such as creating directories), resolve the `{project-root}` token to the actual project root for each path-type value from `config.toml` — this includes `output_folder` and any module variable whose value starts with `{project-root}/`. The paths stored in the config files must continue to use the literal `{project-root}` token; only the directories on disk should use the resolved paths.
 
 For each directory, check whether it already exists before creating it. Track two lists: **created** (directories that did not exist and were created via `mkdir -p`) and **already existed** (directories that were already present). Both lists are used in the confirmation step.
 
@@ -189,7 +189,7 @@ Check `directories_removed` and `files_removed_count` in the JSON output for the
 
 ## Confirm
 
-Use the script JSON output to display what was written — config values set (written to `config.yaml` at root for core, module section for module values), user settings written to `config.user.yaml` (`user_keys` in result), help entries added, fresh install vs update. If legacy files were deleted, mention the migration. If legacy directories were removed, report the count and list (e.g. "Cleaned up 106 installer package files from bmb/, core/, \_config/ — skills are installed at .claude/skills/"). For directories: only list directories that were newly created under "Directories created". If all directories already existed, say "Output directories already in place — no new directories created." Do not list pre-existing directories as created. Then display the `module_greeting` from `./assets/module.yaml` to the user.
+Use the script JSON output to display what was written — config values set (written to `config.toml` under `[modules.aep]` for module values, `[core]` for core settings), user settings written to `config.user.toml` (`user_keys` in result), help entries added, fresh install vs update. If legacy files were deleted, mention the migration. If legacy directories were removed, report the count and list (e.g. "Cleaned up 106 installer package files from bmb/, core/, \_config/ — skills are installed at .claude/skills/"). For directories: only list directories that were newly created under "Directories created". If all directories already existed, say "Output directories already in place — no new directories created." Do not list pre-existing directories as created. Then display the `module_greeting` from `./assets/module.yaml` to the user.
 
 ## Outcome
 

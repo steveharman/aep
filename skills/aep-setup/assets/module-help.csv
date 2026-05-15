@@ -1,4 +1,4 @@
-display-name,menu-code,description,action,args,phase,after,before,required,output-location,outputs
-Implement Epic,IE,Run full epic pipeline for one or more epics,implement-epic,<epic-ids>,4-implementation,,,false,quality_report_location,quality reports and sprint status updates
-Implement Story,IS,Run 12-step story pipeline autonomously,implement-story,[story-id],4-implementation,,,false,quality_report_location,story file and quality report
-Quality Gate,QG,Run quality gate on manually-implemented story,quality-gate,[story-id],4-implementation,,,false,quality_report_location,quality report
+module,skill,display-name,menu-code,description,action,args,phase,after,before,required,output-location,outputs
+Autonomous Epic Pipeline,aep-implement-epic,Implement Epic,IE,Run full epic pipeline for one or more epics,implement-epic,<epic-ids>,4-implementation,,,false,quality_report_location,quality reports and sprint status updates
+Autonomous Epic Pipeline,aep-implement-story,Implement Story,IS,Run 12-step story pipeline autonomously,implement-story,[story-id],4-implementation,,,false,quality_report_location,story file and quality report
+Autonomous Epic Pipeline,aep-post-story-quality,Quality Gate,QG,Run quality gate on manually-implemented story,quality-gate,[story-id],4-implementation,,,false,quality_report_location,quality report
